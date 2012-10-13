@@ -1,0 +1,7 @@
+This script runs once a day to look for new tracks on Pitchfork's "Best New Tracks" page. 
+
+New discoveries are added to a CSV. The script searches for each song on Rdio and adds it to a playlist if found.
+
+This is my first significant coding project so probably not very sophisticated, but it seems to work just fine ;)
+
+Version 2.0 (for the 2013 tracks) will be much improved! 
