@@ -22,6 +22,23 @@ def is_available(key):
 	availability = track_info['result'][key]['canStream']
 	return availability
 
+#puts last track of a playlist at start
+def make_last_track_first(playlist_key):
+	tracks_on_playlist = rdio.call('get', {'keys' : PITCHFORK_PLAYLIST_BETA, 'extras' : 'tracks'})
+	tracks_on_playlist = tracks_on_playlist['result'][PITCHFORK_PLAYLIST_BETA]['tracks']
+	
+	track_keys = []
+	
+	for track in tracks_on_playlist:
+		track_keys.append(track['key'])
+		
+	track_keys.insert(0, track_keys[-1])
+	track_keys.pop()
+	
+	track_keys_string = ', '.join(track_keys)
+	
+	rdio.call('setPlaylistOrder', {'playlist': PITCHFORK_PLAYLIST_BETA, 'tracks' : track_keys_string})
+
 #takes in a track dictionary and looks for it in rdio, returns track key if found
 def find_track(track):
     query = track['artist']+' '+track['title']
@@ -95,6 +112,7 @@ for track in csv_tracks:
 		if find_track(track) != None:
 			key = find_track(track)
 			add_to_playlist(key)
+			make_last_track_first(PITCHFORK_PLAYLIST_BETA)
 			track['status'] = '1'
 			track['key'] = key #saves track key to csv as well 
 			print 'Adding %s by %s to the playlist' % (track['title'],track['artist'])
