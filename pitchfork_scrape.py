@@ -8,6 +8,8 @@ import re
 from BeautifulSoup import BeautifulSoup
 from rdio import Rdio
 from rdio_consumer_credentials import *
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 #checks if a track is already in the csv array
 def is_in_csv(csv_list, dictionary, key):
@@ -40,20 +42,36 @@ def make_last_track_first(playlist_key):
 	rdio.call('setPlaylistOrder', {'playlist': PITCHFORK_PLAYLIST_BETA, 'tracks' : track_keys_string})
 
 #takes in a track dictionary and looks for it in rdio, returns track key if found
-def find_track(track):
-    query = track['artist']+' '+track['title']
-    search = rdio.call('search', { 'query' : query, 'types' : 'Track' })
-    search = search['result']['results'] #gets rid of extraneous matter from search query return
-    for result in search:
-        if re.search(track['artist'],result['artist'],flags=re.IGNORECASE) != None:
-            if re.search(track['title'],result['name'],flags=re.IGNORECASE) != None:
-                if result['canStream']:
-                    return result['key']
+def find_track(track_dict):
+	query = track_dict['artist']+' '+track_dict['title']
+	search = rdio.call('search', {'query': query, 'types': 'Track'})
+    
+	#set how many options to search amongst; never more than 5
+	result_count = search['result']['track_count']
+	choice_count = 5 if result_count > 5 else result_count #one-line if-else statement!
+	
+	choices = []
+	
+	for i in range(0, choice_count):
+		choice_string = (search['result']['results'][i]['artist'] + ' ' + 
+						 search['result']['results'][i]['name'])
+		choices.append(choice_string)
+		
+	#use seatgeek fuzzywuzzy matching to find best choice
+	best_choice = process.extractOne(query, choices)
+
+	#weed out results with low similarity scores
+	if (int(best_choice[1]))>89:
+		
+		index = choices.index(best_choice[0])
+	
+		#get the track key for the best choice
+		key = search['result']['results'][index]['key']
+		return key
 
 def add_to_playlist(key):
     rdio.call('addToPlaylist', { 'playlist' : PITCHFORK_PLAYLIST_BETA, 'tracks' : key })
     
-
 #open pitchfork page and parse with beautiful soup
 page = urllib2.urlopen("http://www.pitchfork.com/reviews/best/tracks/")
 soup = BeautifulSoup(page)
@@ -123,4 +141,3 @@ writer = csv.writer(f)
 for record in csv_tracks:
     writer.writerow([record['artist'],record['title'],record['status'],record['key']])
 f.close()
-
