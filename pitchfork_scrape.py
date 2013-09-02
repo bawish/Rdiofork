@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append('/Users/barrett/Dropbox/Python/Pitchfork') #temporary
-
 import csv
 import urllib2
 import re
@@ -41,34 +37,38 @@ def make_last_track_first(playlist_key):
 	
 	rdio.call('setPlaylistOrder', {'playlist': PITCHFORK_PLAYLIST_BETA, 'tracks' : track_keys_string})
 
-#takes in a track dictionary and looks for it in rdio, returns track key if found
+# accepts dict with 'artist' and 'title'; searches rdio for matching track
+# returns track key
 def find_track(track_dict):
 	query = track_dict['artist']+' '+track_dict['title']
 	search = rdio.call('search', {'query': query, 'types': 'Track'})
-    
+
 	#set how many options to search amongst; never more than 5
 	result_count = search['result']['track_count']
 	choice_count = 5 if result_count > 5 else result_count #one-line if-else statement!
-	
+
 	choices = []
-	
+
 	for i in range(0, choice_count):
 		choice_string = (search['result']['results'][i]['artist'] + ' ' + 
 						 search['result']['results'][i]['name'])
 		choices.append(choice_string)
-		
+
 	#use seatgeek fuzzywuzzy matching to find best choice
 	best_choice = process.extractOne(query, choices)
 
 	#weed out results with low similarity scores
 	if (int(best_choice[1]))>89:
-		
-		index = choices.index(best_choice[0])
-	
-		#get the track key for the best choice
-		key = search['result']['results'][index]['key']
-		return key
 
+		index = choices.index(best_choice[0])
+
+		#make sure it's streamable
+		if search['result']['results'][index]['canStream']:
+
+			#get the track key for the best choice
+			key = search['result']['results'][index]['key']
+			return key
+			
 def add_to_playlist(key):
     rdio.call('addToPlaylist', { 'playlist' : PITCHFORK_PLAYLIST_BETA, 'tracks' : key })
     
@@ -76,10 +76,12 @@ def add_to_playlist(key):
 page = urllib2.urlopen("http://www.pitchfork.com/reviews/best/tracks/")
 soup = BeautifulSoup(page)
 
+#path where history.csv is stored
+history_file_path = ''
 
 # read csv rows into an array
 csv_tracks = []
-f = open('/Users/barrett/Desktop/tracks.csv', 'rb')
+f = open(history_file_path, 'rb')
 reader = csv.reader(f)
 for row in reader:
     csv_tracks.append({'artist':row[0], 'title':row[1], 'status':row[2], 'key':row[3]})
@@ -136,7 +138,7 @@ for track in csv_tracks:
 			print 'Adding %s by %s to the playlist' % (track['title'],track['artist'])
             
 # write csv_tracks back out to file
-f = open('/Users/barrett/Desktop/tracks.csv', 'w')
+f = open(history_file_path, 'w')
 writer = csv.writer(f)
 for record in csv_tracks:
     writer.writerow([record['artist'],record['title'],record['status'],record['key']])
