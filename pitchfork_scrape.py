@@ -1,3 +1,4 @@
+#checking
 import csv
 import urllib2
 import re
@@ -14,7 +15,7 @@ def is_in_csv(csv_list, dictionary, key):
             return True
     return False
 
-#returns boolean true if a track is still available; key should be a string	
+#returns boolean true if a track is still available; key should be a string
 def is_available(key):
 	track_info = rdio.call('get', {'keys' : key})
 	availability = track_info['result'][key]['canStream']
@@ -24,17 +25,17 @@ def is_available(key):
 def make_last_track_first(playlist_key):
 	tracks_on_playlist = rdio.call('get', {'keys' : PITCHFORK_PLAYLIST_BETA, 'extras' : 'tracks'})
 	tracks_on_playlist = tracks_on_playlist['result'][PITCHFORK_PLAYLIST_BETA]['tracks']
-	
+
 	track_keys = []
-	
+
 	for track in tracks_on_playlist:
 		track_keys.append(track['key'])
-		
+
 	track_keys.insert(0, track_keys[-1])
 	track_keys.pop()
-	
+
 	track_keys_string = ', '.join(track_keys)
-	
+
 	rdio.call('setPlaylistOrder', {'playlist': PITCHFORK_PLAYLIST_BETA, 'tracks' : track_keys_string})
 
 # accepts dict with 'artist' and 'title'; searches rdio for matching track
@@ -50,7 +51,7 @@ def find_track(track_dict):
 	choices = []
 
 	for i in range(0, choice_count):
-		choice_string = (search['result']['results'][i]['artist'] + ' ' + 
+		choice_string = (search['result']['results'][i]['artist'] + ' ' +
 						 search['result']['results'][i]['name'])
 		choices.append(choice_string)
 
@@ -68,16 +69,16 @@ def find_track(track_dict):
 			#get the track key for the best choice
 			key = search['result']['results'][index]['key']
 			return key
-			
+
 def add_to_playlist(key):
     rdio.call('addToPlaylist', { 'playlist' : PITCHFORK_PLAYLIST_BETA, 'tracks' : key })
-    
+
 #open pitchfork page and parse with beautiful soup
 page = urllib2.urlopen("http://www.pitchfork.com/reviews/best/tracks/")
 soup = BeautifulSoup(page)
 
 #path where history.csv is stored
-history_file_path = ''
+history_file_path = 'tracks.csv'
 
 # read csv rows into an array
 csv_tracks = []
@@ -109,7 +110,7 @@ for title in titles:
 #combine the two
 for i in range(0,len(artist_list)):
     new = {'artist':artist_list[i], 'title':title_list[i],'status':'0','key':''}
-    
+
     #check if combined tracks is already in csv & if not, add it
     if not is_in_csv(csv_tracks, new, 'title'):
         csv_tracks.append(new)
@@ -120,7 +121,7 @@ rdio = Rdio((RDIO_CONSUMER_KEY, RDIO_CONSUMER_SECRET), (RDIO_TOKEN, RDIO_TOKEN_S
 
 #loop through any unadded tracks and see if they're on rdio, add 'em if they are
 for track in csv_tracks:
-    
+
 	#make sure track is still available, reset it to 0 if it's not
 	if track['status'] == '1':
 		availability = is_available(track['key'])
@@ -134,9 +135,9 @@ for track in csv_tracks:
 			add_to_playlist(key)
 			make_last_track_first(PITCHFORK_PLAYLIST_BETA)
 			track['status'] = '1'
-			track['key'] = key #saves track key to csv as well 
+			track['key'] = key #saves track key to csv as well
 			print 'Adding %s by %s to the playlist' % (track['title'],track['artist'])
-            
+
 # write csv_tracks back out to file
 f = open(history_file_path, 'w')
 writer = csv.writer(f)
